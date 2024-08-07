@@ -1,13 +1,15 @@
 import PropTypes from "prop-types";
 import { useState, useMemo } from "react";
-import { Table, Input, Button } from "antd";
+import { Table, Input, Typography } from "antd";
+
+const { Title } = Typography;
 
 const FileUpload = () => {
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [followersSearchTerm, setFollowersSearchTerm] = useState("");
   const [followingSearchTerm, setFollowingSearchTerm] = useState("");
-  const [showNotFollowingBack, setShowNotFollowingBack] = useState(false);
+  const [comparisonSearchTerm, setComparisonSearchTerm] = useState("");
 
   const handleFileChange = (event, setData, isFollowing) => {
     const file = event.target.files[0];
@@ -27,10 +29,6 @@ const FileUpload = () => {
       };
       reader.readAsText(file);
     }
-  };
-
-  const toggleShowNotFollowingBack = () => {
-    setShowNotFollowingBack(!showNotFollowingBack);
   };
 
   return (
@@ -79,16 +77,12 @@ const FileUpload = () => {
       </div>
       {followers.length > 0 && following.length > 0 && (
         <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-          <Button
-            type="primary"
-            onClick={toggleShowNotFollowingBack}
-            className="mb-4 bg-blue-600 hover:bg-blue-700 border-blue-700"
-          >
-            {showNotFollowingBack ? "Hide" : "Show"} Not Following Back
-          </Button>
-          {showNotFollowingBack && (
-            <ComparisonTable followers={followers} following={following} />
-          )}
+          <ComparisonTable
+            followers={followers}
+            following={following}
+            searchTerm={comparisonSearchTerm}
+            setSearchTerm={setComparisonSearchTerm}
+          />
         </div>
       )}
     </div>
@@ -103,6 +97,8 @@ const FollowersTable = ({ data, searchTerm, setSearchTerm }) => {
         entry.value.toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [data, searchTerm]);
+
+  const totalCount = filteredData.length;
 
   const columns = [
     {
@@ -137,7 +133,14 @@ const FollowersTable = ({ data, searchTerm, setSearchTerm }) => {
 
   return (
     <div className="overflow-x-auto">
-      <h3 className="text-xl font-bold mb-4">Followers</h3>
+      <div className="flex justify-between items-center mb-4">
+        <Title level={3} className="text-xl font-bold">
+          Followers
+        </Title>
+        <div className="text-white text-lg font-semibold">
+          Total: {totalCount}
+        </div>
+      </div>
       <Input
         placeholder="Search..."
         value={searchTerm}
@@ -148,7 +151,7 @@ const FollowersTable = ({ data, searchTerm, setSearchTerm }) => {
         columns={columns}
         dataSource={filteredData}
         rowKey="value"
-        pagination={{ pageSize: 10 }}
+        pagination={{ position: ["bottomCenter"] }}
         scroll={{ x: true }}
         className="bg-gray-800"
       />
@@ -170,6 +173,8 @@ FollowersTable.propTypes = {
   ).isRequired,
   searchTerm: PropTypes.string.isRequired,
   setSearchTerm: PropTypes.func.isRequired,
+  pageSize: PropTypes.number.isRequired,
+  setPageSize: PropTypes.func.isRequired,
 };
 
 const FollowingTable = ({ data, searchTerm, setSearchTerm }) => {
@@ -180,6 +185,8 @@ const FollowingTable = ({ data, searchTerm, setSearchTerm }) => {
         entry.value.toLowerCase().includes(searchTerm.toLowerCase())
       );
   }, [data, searchTerm]);
+
+  const totalCount = filteredData.length;
 
   const columns = [
     {
@@ -214,7 +221,14 @@ const FollowingTable = ({ data, searchTerm, setSearchTerm }) => {
 
   return (
     <div className="overflow-x-auto">
-      <h3 className="text-xl font-bold mb-4">Following</h3>
+      <div className="flex justify-between items-center mb-4">
+        <Title level={3} className="text-xl font-bold">
+          Following
+        </Title>
+        <div className="text-white text-lg font-semibold">
+          Total: {totalCount}
+        </div>
+      </div>
       <Input
         placeholder="Search..."
         value={searchTerm}
@@ -225,7 +239,7 @@ const FollowingTable = ({ data, searchTerm, setSearchTerm }) => {
         columns={columns}
         dataSource={filteredData}
         rowKey="value"
-        pagination={{ pageSize: 10 }}
+        pagination={{ position: ["bottomCenter"] }}
         scroll={{ x: true }}
         className="bg-gray-800"
       />
@@ -247,9 +261,16 @@ FollowingTable.propTypes = {
   ).isRequired,
   searchTerm: PropTypes.string.isRequired,
   setSearchTerm: PropTypes.func.isRequired,
+  pageSize: PropTypes.number.isRequired,
+  setPageSize: PropTypes.func.isRequired,
 };
 
-const ComparisonTable = ({ followers, following }) => {
+const ComparisonTable = ({
+  followers,
+  following,
+  searchTerm,
+  setSearchTerm,
+}) => {
   const followersUsernames = (followers || [])
     .flatMap((item) => item.string_list_data || [])
     .map((entry) => entry.value.toLowerCase());
@@ -261,6 +282,14 @@ const ComparisonTable = ({ followers, following }) => {
   const notFollowingBack = followingUsernames.filter(
     (username) => !followersUsernames.includes(username)
   );
+
+  const filteredData = useMemo(() => {
+    return notFollowingBack.filter((username) =>
+      username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [notFollowingBack, searchTerm]);
+
+  const totalCount = filteredData.length;
 
   const columns = [
     {
@@ -282,22 +311,37 @@ const ComparisonTable = ({ followers, following }) => {
           {text}
         </a>
       ),
+      sorter: (a, b) => a.username.localeCompare(b.username),
     },
   ];
 
-  const data = notFollowingBack.map((username, index) => ({
+  const data = filteredData.map((username, index) => ({
     key: index,
     username,
   }));
 
   return (
     <div className="mt-4 overflow-x-auto">
-      <h3 className="text-xl font-bold mb-4">Not Following Back</h3>
+      <div className="flex justify-between items-center mb-4">
+        <Title level={3} className="text-xl font-bold">
+          Not Following Back
+        </Title>
+        <div className="text-white text-lg font-semibold">
+          Total: {totalCount}
+        </div>
+      </div>
+      <Input
+        placeholder="Search..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="mb-4 bg-gray-700 border border-gray-600 text-white"
+      />
       <Table
         columns={columns}
         dataSource={data}
-        pagination={{ pageSize: 10 }}
         rowKey="username"
+        pagination={{ position: ["bottomCenter"] }}
+        scroll={{ x: true }}
         className="bg-gray-800"
       />
     </div>
@@ -327,6 +371,10 @@ ComparisonTable.propTypes = {
       ).isRequired,
     })
   ).isRequired,
+  searchTerm: PropTypes.string.isRequired,
+  setSearchTerm: PropTypes.func.isRequired,
+  pageSize: PropTypes.number.isRequired,
+  setPageSize: PropTypes.func.isRequired,
 };
 
 export default FileUpload;

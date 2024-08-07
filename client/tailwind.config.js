@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        signature: ["Great Vibes"],
+        signature: ["Pacifico"],
       },
       colors: {
         "royal-blue": "#405de6",
